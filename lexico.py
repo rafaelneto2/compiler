@@ -35,12 +35,15 @@ class TipoToken:
 
 
 class Token:
-    def __init__(self, linha, tipo, lexema):
+    def __init__(self, linha, tipo, lexema, msg2=None):
         self.linha = linha
         self.tipo = tipo
         (const, msg) = tipo
         self.const = const
-        self.msg = msg
+        if msg2 is None:
+            self.msg = msg
+        else:
+            self.msg = msg2
         self.lexema = lexema
 
 
@@ -149,17 +152,21 @@ class Lexico:
                 elif car == '"':
                     estado = 5
                 else:
-                    return Token(self.linha, TipoToken.ERROR, '[' + car + ']')
+                    return Token(self.linha, TipoToken.ERROR, '[' + car + ']', 'Caracter inválido' + car)
 
             elif estado == 2:
                 # estado que trata identificadores e palavras reservada
+
                 lexema = lexema + car
                 car = self.getChar()
+
                 if car is None or (not car.isalnum()):
                     self.ungetChar(car)
                     if lexema in Lexico.reservadas:
                         return Token(self.linha, Lexico.reservadas[lexema], lexema)
                     else:
+                        if len(lexema) > 16:
+                            return Token(self.linha, TipoToken.ERROR, '[ identificador com mais de 16 dig. ]')
                         return Token(self.linha, TipoToken.ID, lexema)
 
             elif estado == 3:

@@ -8,7 +8,7 @@ VARIAVEIS x,y: INTEIRO;
 {
     ESCREVA("Digite um numero:");
     LEIA(x);
-    y:=çx;
+    y:=ï¿½x;
     #b:=VERDADEIRO;
     ENQUANTO(b)  /* isto eh apenas um exemplo que contem erros
     { 

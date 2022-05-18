@@ -21,20 +21,21 @@ class Sintatico:
 
             self.lex.fechaArquivo()
 
+            if len(self.erros) > 0:
+                print(self.erros)
+
     def atualIgual(self, token):
         (const, msg) = token
         return self.tokenAtual.const == const
 
     def consome(self, token):
         if self.atualIgual(token):
-            self.tokenAtual = self.lex.getToken()
+            self.tokenAtual = self.proxToken()
         else:
             (const, msg) = token
-            print('ERRO DE SINTAXE [linha %d]: era esperado "%s" mas veio "%s"'
-                  % (self.tokenAtual.linha, msg, self.tokenAtual.lexema))
-            # print('ERRO DE SINTAXE [linha ]: era esperado "%s" mas veio "%s"'
-            #       % (msg, self.tokenAtual.lexema))
-            quit()
+            self.erros.append('ERRO DE SINTAXE [linha %d]: era esperado "%s" mas veio "%s"' % (
+            self.tokenAtual.linha, msg, self.tokenAtual.lexema))
+            self.tokenAtual = self.proxToken()
 
     def PROG(self):
         self.consome(tt.PROGRAMA)
@@ -97,9 +98,11 @@ class Sintatico:
         self.G()
 
     def G(self):
-        if self.atualIgual(tt.FIMARQ):
-            pass
-        else:
+        if self.atualIgual(tt.SE) \
+                or self.atualIgual(tt.ENQUANTO) \
+                or self.atualIgual(tt.LEIA) \
+                or self.atualIgual(tt.ESCREVA) \
+                or self.atualIgual(tt.ID):
             self.LISTA_COMANDOS()
 
     def COMANDOS(self):
@@ -111,8 +114,10 @@ class Sintatico:
             self.READ()
         elif self.atualIgual(tt.ESCREVA):
             self.WRITE()
-        else:
+        elif self.atualIgual(tt.ID):
             self.ATRIB()
+        else:
+            self.erros.append('Erro')
 
     def IF(self):
         self.consome(tt.SE)
@@ -219,6 +224,16 @@ class Sintatico:
             self.consome(tt.VERDADEIRO)
         elif self.atualIgual(tt.FALSO):
             self.consome(tt.FALSO)
-        else:
+        elif self.atualIgual(tt.OPNEG):
             self.consome(tt.OPNEG)
             self.FAT()
+        else:
+            self.erros.append('Erro de comando')
+
+    def proxToken(self):
+        new_token = self.lex.getToken()
+        if new_token.tipo == tt.ERROR:
+            self.erros.append(new_token.msg)
+            return self.proxToken()
+        else:
+            return new_token
