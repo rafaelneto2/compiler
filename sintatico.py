@@ -1,3 +1,21 @@
+# Nome Discente: Rafael Augusto de Rezende Neto
+# Matrícula: 0021724
+# Data: 23/05/2022
+
+# Declaro que sou o único autor e responsável por este programa. Todas as partes do programa, exceto as que foram fornecidas
+# pelo professor ou copiadas do livro ou das bibliotecas de Aho et al., foram desenvolvidas por mim. Declaro também que
+# sou responsável por todas as eventuais cópias deste programa e que não distribui nem facilitei a distribuição de cópias.
+
+# O arquivo sintatico.py contém a implementação de um analisador sintatico para a linguagem definida pela gramatica
+# contida na especificação do trabalho prático. Foi implementada a classe Sintatico, responsável pela análise
+# sintatica do complilador, com uma função interprete() que recebe o nome do arquivo e é responsável por iniciar o processo,
+# a função consome() é responsável por consumir os terminais da gramatica e verificar a existência de erros.
+
+# Referências bibliográficas:
+# Exemplos enviados pelo professor Mário
+# AHO, A. V. et al. Compiladores. 2 ed. São Paulo: Pearson Addison-Wesley, 2008.
+
+
 from lexico import TipoToken as tt, Lexico
 
 
@@ -7,6 +25,8 @@ class Sintatico:
         self.lex = None
         self.tokenAtual = None
         self.erros = []
+        # buffer de token
+        self.buffer = None
 
     def interprete(self, nomeArquivo):
         if not self.lex is None:
@@ -16,26 +36,47 @@ class Sintatico:
             self.lex.abreArquivo()
             self.tokenAtual = self.lex.getToken()
 
+            # inicia execução a partir da produção inicial
             self.PROG()
             self.consome(tt.FIMARQ)
 
             self.lex.fechaArquivo()
 
+            # exibe todos erros encontrados
             if len(self.erros) > 0:
-                print(self.erros)
+                for erro in self.erros:
+                    print(erro)
 
     def atualIgual(self, token):
-        (const, msg) = token
+        try:
+            (const, msg) = token
+        except:
+            const = token.const
         return self.tokenAtual.const == const
 
     def consome(self, token):
         if self.atualIgual(token):
-            self.tokenAtual = self.proxToken()
+            # se buffer não for nulo, consome token do buffer
+            if self.buffer is not None:
+                self.tokenAtual = self.buffer
+                self.buffer = None
+            else:
+                self.tokenAtual = self.proxToken()
         else:
             (const, msg) = token
+
+            # erro sintático encontrado
             self.erros.append('ERRO DE SINTAXE [linha %d]: era esperado "%s" mas veio "%s"' % (
-            self.tokenAtual.linha, msg, self.tokenAtual.lexema))
-            self.tokenAtual = self.proxToken()
+                self.tokenAtual.linha, msg, self.tokenAtual.lexema))
+
+            # pega próximo token
+            prox = self.proxToken()
+            if const == prox.const:
+                # se próximo token é igual ao atual, então ignora token inválido e continua execusão
+                self.tokenAtual = self.proxToken()
+            else:
+                # senão, guarda token em um buffer, para ser reutilizado
+                self.buffer = prox
 
     def PROG(self):
         self.consome(tt.PROGRAMA)
@@ -85,8 +126,11 @@ class Sintatico:
             self.consome(tt.REAL)
         elif self.atualIgual(tt.LOGICO):
             self.consome(tt.LOGICO)
-        else:
+        elif self.atualIgual(tt.CARACTER):
             self.consome(tt.CARACTER)
+        else:
+            self.erros.append('ERRO DE SINTAXE [linha %d]: Era esperado um tipo.' % (
+                self.tokenAtual.linha))
 
     def C_COMP(self):
         self.consome(tt.ABRECH)
@@ -117,7 +161,8 @@ class Sintatico:
         elif self.atualIgual(tt.ID):
             self.ATRIB()
         else:
-            self.erros.append('Erro')
+            self.erros.append('ERRO DE SINTAXE [linha %d]: COMANDOS não encontrados' % (
+                self.tokenAtual.linha))
 
     def IF(self):
         self.consome(tt.SE)
@@ -132,7 +177,9 @@ class Sintatico:
             self.consome(tt.SENAO)
             self.C_COMP()
         else:
-            pass
+            self.erros.append('ERRO DE SINTAXE [linha %d]: era esperado "%s" mas veio "%s"' % (
+                self.tokenAtual.linha, tt.SENAO[1], self.tokenAtual.lexema))
+            self.C_COMP()
 
     def WHILE(self):
         self.consome(tt.ENQUANTO)
@@ -228,12 +275,21 @@ class Sintatico:
             self.consome(tt.OPNEG)
             self.FAT()
         else:
-            self.erros.append('Erro de comando')
+            self.erros.append('ERRO DE SINTAXE [linha %d]: Sem argumentos' % (
+                self.tokenAtual.linha))
 
     def proxToken(self):
+
+        # recebe próximo token
         new_token = self.lex.getToken()
+
         if new_token.tipo == tt.ERROR:
-            self.erros.append(new_token.msg)
+            # erro léxico encontrado
+            self.erros.append('ERRO LÉXICO [linha %d]: %s' % (
+                new_token.linha, new_token.msg))
+
+            # segue execusão (método pânico)
             return self.proxToken()
         else:
+            # retorna token caso não tenha erro
             return new_token

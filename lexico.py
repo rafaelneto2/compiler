@@ -1,3 +1,21 @@
+# Nome Discente: Rafael Augusto de Rezende Neto
+# Matrícula: 0021724
+# Data: 23/05/2022
+
+# Declaro que sou o único autor e responsável por este programa. Todas as partes do programa, exceto as que foram fornecidas
+# pelo professor ou copiadas do livro ou das bibliotecas de Aho et al., foram desenvolvidas por mim. Declaro também que
+# sou responsável por todas as eventuais cópias deste programa e que não distribui nem facilitei a distribuição de cópias.
+
+# O arquivo lexico.py contém a implementação de um analisador léxico para a linguagem definida na especificação do
+# trabalho prático. Foram implementadas as classes TipoToken, responsável pela definição dos tipos de tokens,
+# Tokem, que representa uma TAD para um token encontrado e retornado, e, por fim,
+# Lexico, responsável por abrir e fechar arquivo do programa (código de entrada) e resgatar os tokens através da função getToken().
+
+# Referências bibliográficas:
+# Exemplos enviados pelo professor da disciplina de Compiladores, Mário
+# AHO, A. V. et al. Compiladores. 2 ed. São Paulo: Pearson Addison-Wesley, 2008.
+
+
 from os import path
 
 
@@ -35,20 +53,22 @@ class TipoToken:
 
 
 class Token:
-    def __init__(self, linha, tipo, lexema, msg2=None):
+    def __init__(self, linha, tipo, lexema, msg_erro=None):
         self.linha = linha
         self.tipo = tipo
         (const, msg) = tipo
         self.const = const
-        if msg2 is None:
+        if msg_erro is None:
             self.msg = msg
         else:
-            self.msg = msg2
+            self.msg = msg_erro
         self.lexema = lexema
 
 
 class Lexico:
+    # variável global responsável por guardar linha do token
     global linha
+
     # dicionario de palavras reservadas
     reservadas = {
         'programa': TipoToken.PROGRAMA,
@@ -113,6 +133,7 @@ class Lexico:
         if not c is None:
             self.buffer = self.buffer + c
 
+    # verifica qual é o próximo caracter
     def proxChar(self):
         c = self.getChar()
         self.ungetChar(c)
@@ -131,28 +152,39 @@ class Lexico:
                 elif car in {' ', '\t', '\n'}:
                     pass
                 elif car == '/' and self.proxChar() == '/':
+                    # Estado 6 é responsável pelos comentários de linha
                     estado = 6
                 elif car == '/' and self.proxChar() == '*':
+                    # Estado 7 é responsável pelos comentários de bloco
                     estado = 7
                 elif car.isalpha():
+                    # Estado 2 é responsável pelos caracteres do alfabeto (idetificadores e palavras reservadas)
                     estado = 2
                 elif car.isdigit():
+                    # Estado 3 é responsável pelas constantes numéricas inteiras
                     estado = 3
                 elif car == ':' and self.proxChar() == '=':
+                    # Verifica se é uma atribuição e retorna
                     return Token(self.linha, TipoToken.ATRIB, car + self.getChar())
                 elif car == '<' and self.proxChar() == '=':
+                    # Verifica se é uma operação de menor igual e retorna
                     return Token(self.linha, TipoToken.OPREL, car + self.getChar())
                 elif car == '>' and self.proxChar() == '=':
+                    # Verifica se é uma operação de maior e retorna
                     return Token(self.linha, TipoToken.OPREL, car + self.getChar())
                 elif car == '<' and self.proxChar() == '>':
+                    # Verifica se é uma operação de diferente e retorna
                     return Token(self.linha, TipoToken.OPREL, car + self.getChar())
                 elif car in {';', ':', ',', '(', ')', '{', '}', '=', '<', '>',
                              '+', '-', '*', '/', '!'}:
+                    # Estado 4 é responsável pelos caracteres especiais
                     estado = 4
                 elif car == '"':
+                    # Estado 5 é responsável pelas cadeias
                     estado = 5
                 else:
-                    return Token(self.linha, TipoToken.ERROR, '[' + car + ']', 'Caracter inválido' + car)
+                    # caracter inválido identificado
+                    return Token(self.linha, TipoToken.ERROR, '[' + car + ']', 'Caracter inválido: ' + car)
 
             elif estado == 2:
                 # estado que trata identificadores e palavras reservada
@@ -162,17 +194,20 @@ class Lexico:
 
                 if car is None or (not car.isalnum()):
                     self.ungetChar(car)
+
+                    # verifica se lexema é uma palavra reservada
                     if lexema in Lexico.reservadas:
                         return Token(self.linha, Lexico.reservadas[lexema], lexema)
                     else:
+                        # verifica se identificador tem mais de 16 caracteres
                         if len(lexema) > 16:
-                            return Token(self.linha, TipoToken.ERROR, '[ identificador com mais de 16 dig. ]')
+                            return Token(self.linha, TipoToken.ERROR, lexema, '[ identificador com mais de 16 dig. ]')
                         return Token(self.linha, TipoToken.ID, lexema)
 
             elif estado == 3:
                 lexema = lexema + car
                 car = self.getChar()
-                if car is None or (not car.isdigit()):
+                if car is None or (not car.isdigit() and car != '.'):
                     self.ungetChar(car)
                     return Token(self.linha, TipoToken.CTE, lexema)
 
@@ -216,6 +251,8 @@ class Lexico:
                 lexema = lexema + car
                 while (not car is None) and (car != '"'):
                     car = self.getChar()
+                    if car is None:
+                        return Token(self.linha, TipoToken.ERROR, lexema, '[ cadeia não fechada ]')
                     lexema = lexema + car
                 return Token(self.linha, TipoToken.CADEIA, lexema)
 
@@ -229,8 +266,8 @@ class Lexico:
                 # consome comentário de bloco
                 while not car is None:
                     car = self.getChar()
-                    if car == '*' and self.getChar() == '/':
+                    if car == '*' and self.proxChar() == '/':
                         break
                 if self.getChar() is None:
-                    return Token(self.linha, TipoToken.ERROR, 'Bloco de comentário aberto e não fechado')
+                    return Token(self.linha, TipoToken.ERROR, None, 'Bloco de comentário aberto e não fechado')
                 estado = 1
