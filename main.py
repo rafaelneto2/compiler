@@ -20,6 +20,6 @@ import sintatico
 if __name__ == "__main__":
     # nome = input("Entre com o nome do arquivo: ")
     nome = sys.argv[1]
-    # nome = 'palavras\\exemplo1.txt'
+    # nome = 'palavras\\exemplo3.txt'
     parser = sintatico.Sintatico()
     parser.interprete(nome)

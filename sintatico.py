@@ -177,9 +177,7 @@ class Sintatico:
             self.consome(tt.SENAO)
             self.C_COMP()
         else:
-            self.erros.append('ERRO DE SINTAXE [linha %d]: era esperado "%s" mas veio "%s"' % (
-                self.tokenAtual.linha, tt.SENAO[1], self.tokenAtual.lexema))
-            self.C_COMP()
+            pass
 
     def WHILE(self):
         self.consome(tt.ENQUANTO)

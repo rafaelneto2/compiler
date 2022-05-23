@@ -1,5 +1,0 @@
-# teste do lexico
-
-c = (34* 7 + (6 + 34)) * 45;
-
-print(casa54);
